@@ -1,7 +1,7 @@
 setup:
   1. ```git clone https://github.com/tommy-mor/freeplane-mover.git```
-  2. ```chmod +x convert.p```
-  3. ```cd freeplane-mover```
+  2. ```cd freeplane-mover```
+  3. ```chmod +x convert.p```
   4. ```(optional) ln -s "$(pwd -P)/convert.py" /usr/local/bin/freeplane-mover```
 
 example workflow:
