@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import dokuwiki
 import os
 from xml.etree.ElementTree import Element, SubElement, Comment, tostring
 from xml.etree import ElementTree
