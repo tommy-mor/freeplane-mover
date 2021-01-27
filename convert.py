@@ -96,7 +96,7 @@ def filewalk(path, includetext):
     isdir = os.path.isdir(path)
 
     me.attrib["ISDIR"] = str(isdir)
-    me.attrib["PATH"] = str(path)
+    me.attrib["LINK"] = str(path)
     if isdir:
         me.attrib["LOCALIZED_STYLE_REF"] = "styles.topic"
 
@@ -184,9 +184,9 @@ def calculateChanges(inputxmlfile):
 def collectChildren(node):
     # TODO this will fail when we add option to include file text bodies in the mindmap
     if node.attrib["ISDIR"] == 'True':
-        raise InvalidChange(f'tried to concatentate directory {node.attrib["PATH"]} to file FILE')
+        raise InvalidChange(f'tried to concatentate directory {node.attrib["LINK"]} to file FILE')
 
-    return [Path(node.attrib['PATH'])] + sum([collectChildren(child) for child in node], [])
+    return [Path(node.attrib['LINK'])] + sum([collectChildren(child) for child in node], [])
         
 
 class InvalidChange(Exception):
@@ -227,7 +227,7 @@ def changes(node, calculatedpath, subs = []):
         ret.append(MakeDirChange(path))
     else:
         isdir = node.attrib['ISDIR'] == 'True'
-        path = Path(node.attrib['PATH'])
+        path = Path(node.attrib['LINK'])
         debug(fname)
             
         
@@ -264,6 +264,7 @@ def changes(node, calculatedpath, subs = []):
 
     return ret
 
+# only added in python 3.9
 def is_relative_to(a, b):
     try:
         a.relative_to(b)
