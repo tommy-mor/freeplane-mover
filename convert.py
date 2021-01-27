@@ -31,6 +31,7 @@ def prettify(elem):
     reparsed = minidom.parseString(rough_string)
     return reparsed.toprettyxml(indent="  ")
 
+
 def node(text, children=[]):
     # construct a node
     global count
@@ -44,6 +45,7 @@ def node(text, children=[]):
         a.append(child)
     return a
 
+
 # [nodes] -> xmlstring
 def makemap(nodes, path):
     # take a list of nodes, and add them to root
@@ -51,10 +53,11 @@ def makemap(nodes, path):
     mm.set("version", "freeplane 1.8.10")
     mm.append(Comment("this is a generated freeplane file"))
     r = node("root", nodes)
-    r.set('ROOTDIR', str(path))
+    r.set("ROOTDIR", str(path))
     mm.append(r)
 
     return prettify(mm)
+
 
 # add body text to a node
 def addbody(node, bodytext):
@@ -72,15 +75,19 @@ def addbody(node, bodytext):
 
 
 def hasbody(node):
-    return all(child.tag == "richcontent"
-               and child.attrib.get("TYPE", None) == "NOTE" for child in node)
+    return all(
+        child.tag == "richcontent" and child.attrib.get("TYPE", None) == "NOTE"
+        for child in node
+    )
+
 
 def getbody(node):
     chilren = list(node)
-    assert(len(chilren) == 1)
+    assert len(chilren) == 1
     note = chilren[0]
-    assert(note.attrib['TYPE'] == 'NOTE')
+    assert note.attrib["TYPE"] == "NOTE"
     return note.text
+
 
 # rootnode = node('start')
 # final = find_pages(rootnode, 'start')
@@ -90,7 +97,7 @@ connections = []
 
 # string path -> node
 def filewalk(path, includetext):
-    #name = path.relative_to(wikidir)
+    # name = path.relative_to(wikidir)
     name = path.name
     me = node(str(name))
     isdir = os.path.isdir(path)
@@ -149,19 +156,19 @@ def xmlnode_to_file(xmlnode, includetext):
     global ex
     debug(f"xmlnode {xmlnode}")
 
-    if 'ISDIR' not in xmlnode.attrib:
+    if "ISDIR" not in xmlnode.attrib:
         global outputdir
-        assert(Path(os.getcwd()).samefile(outputdir))
+        assert Path(os.getcwd()).samefile(outputdir)
         for child in xmlnode:
             xmlnode_to_file(child)
-    elif xmlnode.attrib['ISDIR'] == str(True):
-        assert(not hasbody(xmlnode))
-        with enter(Path(xmlnode.attrib['TEXT']).name):
+    elif xmlnode.attrib["ISDIR"] == str(True):
+        assert not hasbody(xmlnode)
+        with enter(Path(xmlnode.attrib["TEXT"]).name):
             for child in xmlnode:
                 xmlnode_to_file(child, includetext)
     else:
-        assert(hasbody(xmlnode))
-        with open(Path(xmlnode.attrib['TEXT']).name, 'w') as f:
+        assert hasbody(xmlnode)
+        with open(Path(xmlnode.attrib["TEXT"]).name, "w") as f:
             f.write(getbody(xmlnode))
     ex = xmlnode
 
@@ -172,6 +179,7 @@ def convert_back_to_directory(inputxmlfile, outputdir, includetext):
     with enter(outputdir):
         xmlnode_to_file(rootnode, includetext)
 
+
 def calculateChanges(inputxmlfile):
     xml = readxml(inputxmlfile)
     rootnode = list(xml)[0]
@@ -180,82 +188,83 @@ def calculateChanges(inputxmlfile):
     # cs = changes(rootnode, rootdir)
     return cs
 
+
 # collect paths of all children of a node
 def collectChildren(node):
     # TODO this will fail when we add option to include file text bodies in the mindmap
-    if node.attrib["ISDIR"] == 'True':
-        raise InvalidChange(f'tried to concatentate directory {node.attrib["LINK"]} to file FILE')
+    if node.attrib["ISDIR"] == "True":
+        raise InvalidChange(
+            f'tried to concatentate directory {node.attrib["LINK"]} to file FILE'
+        )
 
-    return [Path(node.attrib['LINK'])] + sum([collectChildren(child) for child in node], [])
-        
+    return [Path(node.attrib["LINK"])] + sum(
+        [collectChildren(child) for child in node], []
+    )
+
 
 class InvalidChange(Exception):
     def __init__(self, message):
         self.message = message
-    
+
 
 def collect_concats(node, path):
-        try:
-            pathstoappend = collectChildren(node)
-            if len(pathstoappend) > 1:
-                assert(path == pathstoappend[0])
-                return [ConcatChange(pathstoappend)]
-            else:
-                assert(len(pathstoappend) != 0)
-                debug('found no children')
-                return []
+    try:
+        pathstoappend = collectChildren(node)
+        if len(pathstoappend) > 1:
+            assert path == pathstoappend[0]
+            return [ConcatChange(pathstoappend)]
+        else:
+            assert len(pathstoappend) != 0
+            debug("found no children")
+            return []
 
-        except InvalidChange as ic:
-            #print(ic)
-            raise Exception(ic.message.replace('FILE', str(path)))
-    
+    except InvalidChange as ic:
+        # print(ic)
+        raise Exception(ic.message.replace("FILE", str(path)))
+
 
 # the current node, the calculatedpath, pairs of (from, to) substitutions for paths to apply before returning
-def changes(node, calculatedpath, subs = []):
+def changes(node, calculatedpath, subs=[]):
     childsubs = subs
     ret = []
-    if node.tag != 'node':
-        debug(f'skipping foreign xml node with tag {node.tag}')
+    if node.tag != "node":
+        debug(f"skipping foreign xml node with tag {node.tag}")
         return []
 
-    fname = node.attrib['TEXT']
-    if 'ISDIR' not in node.attrib:
+    fname = node.attrib["TEXT"]
+    if "ISDIR" not in node.attrib:
         # this is a user created node
         # treat it like a directory
         isdir = True
-        path = calculatedpath /  fname
+        path = calculatedpath / fname
         ret.append(MakeDirChange(path))
     else:
-        isdir = node.attrib['ISDIR'] == 'True'
-        path = Path(node.attrib['LINK'])
+        isdir = node.attrib["ISDIR"] == "True"
+        path = Path(node.attrib["LINK"])
         debug(fname)
-            
-        
-
 
     newpath = calculatedpath / fname
     oldpath = path
-            
 
-    if newpath != oldpath: # DIFFERENCE FOUND, apply move operation
+    if newpath != oldpath:  # DIFFERENCE FOUND, apply move operation
         # print('diff found')
         if isdir:
-            assert(newpath.is_absolute())
-            assert(oldpath.is_absolute())
+            assert newpath.is_absolute()
+            assert oldpath.is_absolute()
             ret.append(MoveChange(oldpath, newpath))
             # add a substitution for when we recurse.
             childsubs = subs + [(oldpath, newpath)]
             # ret.extend(sum((changes(child, oldpath, subs = subs + [(oldpath, newpath)]) for child in node), []))
         else:
             ret.append(MoveChange(oldpath, newpath))
-            #ret.extend(sum((changes(child, newpath) for child in node), []))
+            # ret.extend(sum((changes(child, newpath) for child in node), []))
 
     # recurse. if we are a file, collect children to be appended. if we are a dir, simple recurse
     if isdir:
-        ret.extend(sum((changes(child, newpath, subs = childsubs) for child in node), []))
+        ret.extend(sum((changes(child, newpath, subs=childsubs) for child in node), []))
     else:
         ret.extend(collect_concats(node, path))
-        
+
     for c in ret[:]:
         c.subst(subs)
         if c.is_moot():
@@ -263,6 +272,7 @@ def changes(node, calculatedpath, subs = []):
             del c
 
     return ret
+
 
 # only added in python 3.9
 def is_relative_to(a, b):
@@ -272,17 +282,17 @@ def is_relative_to(a, b):
     except:
         return False
 
+
 class Change:
     def subst_path(path, subs: List[Tuple[Path, Path]]):
-        assert(path.is_absolute())
+        assert path.is_absolute()
         for frm, to in subs:
             if is_relative_to(path, frm):
-                return to / path.relative_to(frm) 
+                return to / path.relative_to(frm)
         return path
 
     def is_moot(self):
         return False
-        
 
 
 @dataclass
@@ -294,19 +304,19 @@ class MoveChange(Change):
         self.frm = self.frm.absolute()
         self.to = self.to.absolute()
 
-
     def subst(self, subs):
         self.frm = Change.subst_path(self.frm, subs)
         self.to = Change.subst_path(self.to, subs)
 
     def as_command(self):
-        return f'mv {self.frm} {self.to}'
+        return f"mv {self.frm} {self.to}"
 
     def is_moot(self):
         if self.frm == self.to:
-            debug(f'move {self} is moot')
+            debug(f"move {self} is moot")
             return True
         return False
+
 
 @dataclass
 class MakeDirChange(Change):
@@ -315,20 +325,19 @@ class MakeDirChange(Change):
     def __post_init__(self):
         self.dir = self.dir.absolute()
 
-
     def subst(self, subs):
         self.dir = Change.subst_path(self.dir, subs)
 
     def as_command(self):
-        return f'mkdir {self.dir}'
+        return f"mkdir {self.dir}"
 
-        
+
 @dataclass
 class ConcatChange(Change):
     toconcat: List[Path]
 
     def __post_init__(self):
-        assert(len(self.toconcat) >= 2)
+        assert len(self.toconcat) >= 2
         self.toconcat = [x.resolve() for x in self.toconcat]
 
     def subst(self, subs):
@@ -336,41 +345,43 @@ class ConcatChange(Change):
 
     def as_command(self):
         # print(self.toconcat)
-        command = ''
+        command = ""
         first = self.toconcat[0]
         for file in self.toconcat[1:]:
-            command += f'cat {file} >> {first} && rm {file}\n'
+            command += f"cat {file} >> {first} && rm {file}\n"
         return command.rstrip()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="convert directories to mind maps and back")
-    parser.add_argument('--f')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="convert directories to mind maps and back"
+    )
+    parser.add_argument("--f")
     subparser = parser.add_subparsers()
-    
-    applyChanges = subparser.add_parser('apply')
-    applyChanges.set_defaults(which='apply')
-    readDir = subparser.add_parser('makemap')
-    readDir.set_defaults(which='readdir')
-    
-    readDir.add_argument('map_fname')
-    readDir.add_argument('inputdir')
-    
-    applyChanges.add_argument('map_fname')
+
+    applyChanges = subparser.add_parser("apply")
+    applyChanges.set_defaults(which="apply")
+    readDir = subparser.add_parser("makemap")
+    readDir.set_defaults(which="readdir")
+
+    readDir.add_argument("map_fname")
+    readDir.add_argument("inputdir")
+
+    applyChanges.add_argument("map_fname")
     # applyChanges.add_argument('-r', '--relative', help='cd into directory and apply changes using relative paths')
     args = parser.parse_args()
 
-    if not hasattr(args, 'which'):
-        raise Exception('you forgot command. try ./convert.py {apply,makemap}')
-    if args.which == 'readdir':
+    if not hasattr(args, "which"):
+        raise Exception("you forgot command. try ./convert.py {apply,makemap}")
+    if args.which == "readdir":
         wikidir = Path(args.inputdir).resolve()
         mapfname = Path(args.map_fname).resolve()
 
-        log(f'converting {wikidir} to map located at {mapfname}')
+        log(f"converting {wikidir} to map located at {mapfname}")
         a = filewalk(wikidir, args.f)
         writetofile(a, wikidir, mapfname)
 
-    elif args.which == 'apply':
+    elif args.which == "apply":
         global outputdir
         # outputdir = Path(args.outputdir).resolve()
         mapfname = Path(args.map_fname).resolve()
@@ -381,8 +392,8 @@ if __name__ == '__main__':
         # print(f'changes to apply: {len(changes)}')
         for c in changes:
             print(c.as_command())
-        print(f'rm {mapfname}')
+        print(f"rm {mapfname}")
 
-#mapfname = Path('mindmap/out.mm').resolve()
+# mapfname = Path('mindmap/out.mm').resolve()
 # see changes
-#changes = calculateChanges(mapfname)
+# changes = calculateChanges(mapfname)
