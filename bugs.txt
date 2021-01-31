@@ -1,1 +1,2 @@
 spaces in files messes up (freeplane adds %?)
+created directories have file style

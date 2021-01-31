@@ -192,6 +192,9 @@ def calculateChanges(inputxmlfile):
 # collect paths of all children of a node
 def collectChildren(node):
     # TODO this will fail when we add option to include file text bodies in the mindmap
+    if "ISDIR" not in node.attrib:
+        # print("node with no attreibs", prettify(node))
+        return []
     if node.attrib["ISDIR"] == "True":
         raise InvalidChange(
             f'tried to concatentate directory {node.attrib["LINK"]} to file FILE'
